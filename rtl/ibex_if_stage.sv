@@ -406,6 +406,7 @@ module ibex_if_stage import ibex_pkg::*; #(
     .rst_ni         (rst_ni),
     .valid_i        (fetch_valid & ~fetch_err),
     .instr_i        (if_instr_rdata),
+    .instr_i_addr   (fetch_addr[29:0]), //kalab
     .instr_o        (instr_decompressed),
     .is_compressed_o(instr_is_compressed),
     .illegal_instr_o(illegal_c_insn)

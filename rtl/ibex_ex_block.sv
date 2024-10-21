@@ -18,6 +18,7 @@ module ibex_ex_block #(
 
   // ALU
   input  ibex_pkg::alu_op_e     alu_operator_i,
+  input  logic [6:0]           instr_rdata_ex_i,
   input  logic [31:0]           alu_operand_a_i,
   input  logic [31:0]           alu_operand_b_i,
   input  logic                  alu_instr_first_cycle_i,
@@ -93,12 +94,22 @@ module ibex_ex_block #(
 
   if (BranchTargetALU) begin : g_branch_target_alu
     logic [32:0] bt_alu_result;
+    logic [31:0] bt_alu_result_enc;
     logic        unused_bt_carry;
 
     assign bt_alu_result   = bt_a_operand_i + bt_b_operand_i;
+    
+    
 
     assign unused_bt_carry = bt_alu_result[32];
+    
+    // wire is_jal = (instr_rdata_ex_i == 7'b1101111);  // Opcode for JAL
+    // assign bt_alu_result_enc = (is_jal) ? (bt_alu_result[31:0] ^ 32'h82068860) : bt_alu_result[31:0];
+    // assign bt_alu_result_enc = bt_alu_result[31:0] ^ 32'h82068860;
+
+    // assign branch_target_o = bt_alu_result_enc;
     assign branch_target_o = bt_alu_result[31:0];
+
   end else begin : g_no_branch_target_alu
     // Unused bt_operand signals cause lint errors, this avoids them
     logic [31:0] unused_bt_a_operand, unused_bt_b_operand;
@@ -113,11 +124,28 @@ module ibex_ex_block #(
   // ALU //
   /////////
 
+  // Your existing local signal declarations ...
+  logic [31:0] modified_alu_operand_a;
+
+  // Opcode and JALR detection
+  // wire [6:0] opcode = instr_rdata_ex_i[6:0];
+  wire is_jalr = (instr_rdata_ex_i == 7'b1100111);  // Opcode for JALR
+  
+  // wire is_jal = 1'b1;  // Opcode for JAL
+  
+
+  // Apply XOR operation if the instruction is JALR
+  // (alu_operand_a_i ^ 32'h52068860)
+  assign modified_alu_operand_a =  (is_jalr) ? (alu_operand_a_i ^ 32'h52068860) : alu_operand_a_i;
+  
+  // $display("%b", modified_alu_operand_a);
+  // $monitor(,$time,"a=%h",modified_alu_operand_a);
+
   ibex_alu #(
     .RV32B(RV32B)
   ) alu_i (
     .operator_i         (alu_operator_i),
-    .operand_a_i        (alu_operand_a_i),
+    .operand_a_i        (modified_alu_operand_a), //potential modified operand
     .operand_b_i        (alu_operand_b_i),
     .instr_first_cycle_i(alu_instr_first_cycle_i),
     .imd_val_q_i        (alu_imd_val_q),

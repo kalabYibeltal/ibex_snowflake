@@ -27,6 +27,7 @@ module ibex_wb_stage #(
   input  logic [31:0]              pc_id_i,
   input  logic                     instr_is_compressed_id_i,
   input  logic                     instr_perf_count_id_i,
+  input  logic [6:0]               instr_rdata_wb_i, // my addition
 
   output logic                     ready_wb_o,
   output logic                     rf_write_wb_o,
@@ -242,9 +243,23 @@ module ibex_wb_stage #(
 
   // RF write data can come from ID results (all RF writes that aren't because of loads will come
   // from here) or the LSU (RF writes for load data)
-  assign rf_wdata_wb_o = ({32{rf_wdata_wb_mux_we[0]}} & rf_wdata_wb_mux[0]) |
-                         ({32{rf_wdata_wb_mux_we[1]}} & rf_wdata_wb_mux[1]);
-  assign rf_we_wb_o    = |rf_wdata_wb_mux_we;
+
+  wire is_jal = (instr_rdata_wb_i == 7'b1101111 );  // Opcode for JALR
+  // wire is_jalr = (instr_rdata_wb_i == 7'b1100111 ); 
+
+  // Apply XOR operation if the instruction is JALR
+  // (alu_operand_a_i ^ 32'h52068860)
+
+  logic [31:0] temp;
+  assign temp = ({32{rf_wdata_wb_mux_we[0]}} & rf_wdata_wb_mux[0]) |
+                ({32{rf_wdata_wb_mux_we[1]}} & rf_wdata_wb_mux[1]);
+  // if the instruction is JALR, apply XOR operation
+
+  assign rf_wdata_wb_o = temp ^ ((is_jal ) ? 32'h52068860 : 32'h0);
+
+  // assign rf_wdata_wb_o = (temp ^ 32'hffffffff)
+
+  assign rf_we_wb_o    = | rf_wdata_wb_mux_we;
 
   `DV_FCOV_SIGNAL_GEN_IF(logic, wb_valid, g_writeback_stage.wb_valid_q, WritebackStage)
 

@@ -712,6 +712,7 @@ module ibex_core import ibex_pkg::*; #(
     .rst_ni(rst_ni),
 
     // ALU signal from ID stage
+    .instr_rdata_ex_i        (instr_rdata_id[6:0]), // Instruction opcode from fetch stage
     .alu_operator_i         (alu_operator_ex),
     .alu_operand_a_i        (alu_operand_a_ex),
     .alu_operand_b_i        (alu_operand_b_ex),
@@ -829,6 +830,7 @@ module ibex_core import ibex_pkg::*; #(
     .perf_instr_ret_wb_spec_o           (perf_instr_ret_wb_spec),
     .perf_instr_ret_compressed_wb_spec_o(perf_instr_ret_compressed_wb_spec),
 
+    .instr_rdata_wb_i (instr_rdata_id[6:0]), // my addition
     .rf_waddr_id_i(rf_waddr_id),
     .rf_wdata_id_i(rf_wdata_id),
     .rf_we_id_i   (rf_we_id),
@@ -1324,7 +1326,7 @@ module ibex_core import ibex_pkg::*; #(
   assign rvfi_mem_wdata = rvfi_stage_mem_wdata[RVFI_STAGES-1];
 
   assign rvfi_rd_addr_wb  = rf_waddr_wb;
-  assign rvfi_rd_wdata_wb = rf_we_wb ? rf_wdata_wb : rf_wdata_lsu;
+  assign rvfi_rd_wdata_wb = rf_we_wb ? rf_wdata_wb: rf_wdata_lsu;
   assign rvfi_rd_we_wb    = rf_we_wb | rf_we_lsu;
 
   always_comb begin
