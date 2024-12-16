@@ -185,10 +185,14 @@ module ibex_simple_system (
     assign data_rdata_intg = '0;
     assign instr_rdata_intg = '0;
   end
+  
+  initial begin
+    $display("ICache parameter value: %0d", ICache, "  ", ICacheScramble," ", ICacheECC, " ", BranchPredictor);
+  end
 
   ibex_top_tracing #(
       .SecureIbex      ( SecureIbex       ),
-      .ICacheScramble  ( ICacheScramble   ),
+      .ICacheScramble  ( 1'b1   ),
       .PMPEnable       ( PMPEnable        ),
       .PMPGranularity  ( PMPGranularity   ),
       .PMPNumRegions   ( PMPNumRegions    ),
@@ -199,10 +203,10 @@ module ibex_simple_system (
       .RV32B           ( RV32B            ),
       .RegFile         ( RegFile          ),
       .BranchTargetALU ( BranchTargetALU  ),
-      .ICache          ( ICache           ),
-      .ICacheECC       ( ICacheECC        ),
+      .ICache          ( 1'b1           ),
+      .ICacheECC       ( 1'b1        ),
       .WritebackStage  ( WritebackStage   ),
-      .BranchPredictor ( BranchPredictor  ),
+      .BranchPredictor (  1'b1    ),
       .DbgTriggerEn    ( DbgTriggerEn     ),
       .DmHaltAddr      ( 32'h00100000     ),
       .DmExceptionAddr ( 32'h00100000     )

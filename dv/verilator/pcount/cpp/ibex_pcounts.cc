@@ -36,6 +36,7 @@ const std::vector<std::string> ibex_counter_names = {
 static bool has_hpm_counter(int index) {
   // The "cycles" and "instructions retired" counters are special and always
   // exist.
+  return true;
   if (index == 0 || index == 2)
     return true;
 

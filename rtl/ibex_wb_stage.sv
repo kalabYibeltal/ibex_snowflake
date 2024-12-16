@@ -244,19 +244,21 @@ module ibex_wb_stage #(
   // RF write data can come from ID results (all RF writes that aren't because of loads will come
   // from here) or the LSU (RF writes for load data)
 
-  wire is_jal = (instr_rdata_wb_i == 7'b1101111 );  // Opcode for JALR
-  // wire is_jalr = (instr_rdata_wb_i == 7'b1100111 ); 
-
+  wire is_jal =  (instr_rdata_wb_i == 7'b1101111 );  // Opcode for JALR
+  // wire is_jalr = (instr_rdata_wb_i == 7'b1100111 ); // Opcode for JALR
+  // wire is_test = (instr_rdata_wb_i == 32'h521695a0);  // Opcode for TEST
+                                
   // Apply XOR operation if the instruction is JALR
   // (alu_operand_a_i ^ 32'h52068860)
 
   logic [31:0] temp;
+
   assign temp = ({32{rf_wdata_wb_mux_we[0]}} & rf_wdata_wb_mux[0]) |
                 ({32{rf_wdata_wb_mux_we[1]}} & rf_wdata_wb_mux[1]);
   // if the instruction is JALR, apply XOR operation
+  assign rf_wdata_wb_o = temp ^ (is_jal ? 32'h52068860 : 32'h0);
 
-  assign rf_wdata_wb_o = temp ^ ((is_jal ) ? 32'h52068860 : 32'h0);
-
+                                                                                     
   // assign rf_wdata_wb_o = (temp ^ 32'hffffffff)
 
   assign rf_we_wb_o    = | rf_wdata_wb_mux_we;

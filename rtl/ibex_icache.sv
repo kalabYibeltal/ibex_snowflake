@@ -1,3 +1,4 @@
+
 // Copyright lowRISC contributors.
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
@@ -314,7 +315,17 @@ module ibex_icache import ibex_pkg::*; #(
   // Tag RAMs outputs
   assign ic_tag_req_o    = {IC_NUM_WAYS{tag_req_ic0}} & tag_banks_ic0;
   assign ic_tag_write_o  = tag_write_ic0;
-  assign ic_tag_addr_o   = tag_index_ic0;
+  // assign ic_tag_addr_o   = tag_index_ic0;
+
+   feistel_encrypt  #(
+    // .N_ROUNDS(4)
+  ) feistel_encrypt_tag (
+    .plaintext(tag_index_ic0),
+    .round_keys(16'b1011110100111010),
+    .ciphertext(ic_tag_addr_o)
+   );
+
+
   assign ic_tag_wdata_o  = tag_wdata_ic0;
 
   // Tag RAMs inputs
@@ -323,7 +334,17 @@ module ibex_icache import ibex_pkg::*; #(
   // Data RAMs outputs
   assign ic_data_req_o   = {IC_NUM_WAYS{data_req_ic0}} & data_banks_ic0;
   assign ic_data_write_o = data_write_ic0;
-  assign ic_data_addr_o  = data_index_ic0;
+  // assign ic_data_addr_o  = data_index_ic0;
+
+  feistel_encrypt  #(
+    // .N_ROUNDS(4)
+  ) feistel_encrypt_data (
+    .plaintext(data_index_ic0),
+    .round_keys(16'b1011110100111010),
+    .ciphertext(ic_data_addr_o)
+   );
+
+
   assign ic_data_wdata_o = data_wdata_ic0;
 
   // Data RAMs inputs

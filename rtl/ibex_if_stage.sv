@@ -59,6 +59,19 @@ module ibex_if_stage import ibex_pkg::*; #(
   input  logic                        ic_scr_key_valid_i,
   output logic                        ic_scr_key_req_o,
 
+
+  // BTB RAM IO
+  // 128 lines 
+  // direct mapped
+  // data size 2 bits T wT, WNT, NT
+  // tag data size 1 bit valid / invalid
+  // address least significant 7 bits
+
+  output logic                        btb_data_write_o,
+  output logic [7:0]                  btb_data_addr_o,
+  // output logic [1:0]                  btb_data_wdata_o,
+  input  logic                        btb_data_rdata_i,
+
   // output of ID stage
   output logic                        instr_valid_id_o,         // instr in IF-ID is valid
   output logic                        instr_new_id_o,           // instr in IF-ID is new
@@ -639,16 +652,44 @@ module ibex_if_stage import ibex_pkg::*; #(
       end
     end
 
-    ibex_branch_predict branch_predict_i (
+    // logic predict_branch_taken_raw_q;
+    // logic [31:0] predict_branch_pc_q;
+    // logic btb_i;
+
+     ibex_branch_predict branch_predict_i (
       .clk_i        (clk_i),
       .rst_ni       (rst_ni),
+
       .fetch_rdata_i(fetch_rdata),
       .fetch_pc_i   (fetch_addr),
       .fetch_valid_i(fetch_valid),
 
       .predict_branch_taken_o(predict_branch_taken_raw),
-      .predict_branch_pc_o   (predict_branch_pc)
+      .predict_branch_pc_o   (predict_branch_pc),
+       
+      // BTB RAM IO
+      // .ready             (btb_i),
+      .btb_data_write_o  (btb_data_write_o),
+      .btb_data_addr_o   (btb_data_addr_o),
+      // .btb_data_wdata_o  (btb_data_wdata_o),
+      .btb_data_rdata_i  (btb_data_rdata_i)
+      
     );
+
+
+  // assign predict_branch_taken_raw = predict_branch_taken_raw_q;
+  // assign predict_branch_pc = predict_branch_pc_q;
+
+  // always_ff @(posedge clk_i or negedge rst_ni) begin
+  //   if (!rst_ni) begin
+  //     predict_branch_taken_raw <= 1'b0;
+  //     predict_branch_pc <= 32'b0;
+  //   end else if (btb_i) begin
+  //     predict_branch_taken_raw <= predict_branch_taken_raw_q;
+  //     predict_branch_pc <= predict_branch_pc_q;
+  //   end
+  // end
+  
 
     // If there is an instruction in the skid buffer there must be no branch prediction.
     // Instructions are only placed in the skid after they have been predicted to be a taken branch

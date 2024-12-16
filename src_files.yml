@@ -4,6 +4,9 @@ ibex:
     shared/rtl,
   ]
   files: [
+    rtl/feistel_decrypt.sv,
+    rtl/feistel_encrypt.sv,
+    rtl/feistel_round.sv,
     rtl/ibex_pkg.sv,
     rtl/ibex_alu.sv,
     rtl/ibex_compressed_decoder.sv,

@@ -18,7 +18,7 @@ module ibex_ex_block #(
 
   // ALU
   input  ibex_pkg::alu_op_e     alu_operator_i,
-  input  logic [6:0]           instr_rdata_ex_i,
+  input  logic [7:0]           instr_rdata_ex_i,
   input  logic [31:0]           alu_operand_a_i,
   input  logic [31:0]           alu_operand_b_i,
   input  logic                  alu_instr_first_cycle_i,
@@ -51,12 +51,24 @@ module ibex_ex_block #(
   output logic [31:0]           branch_target_o,       // to IF
   output logic                  branch_decision_o,     // to ID
 
-  output logic                  ex_valid_o             // EX has valid output
+  output logic                  ex_valid_o,             // EX has valid output
+
+  // BTB update ports
+  output logic        btb_data_write_o,
+  output logic [7:0]  btb_data_addr_o,
+  output logic [1:0]  btb_data_wdata_o,
+  input  logic [1:0]  btb_data_rdata_i
+  // input  logic [7:0]  instr_rdata_ex_i
+
 );
+
+
 
   import ibex_pkg::*;
 
   logic [31:0] alu_result, multdiv_result;
+  logic [31:0] alu_adder_result_ex_o_raw;
+  logic [31:0] alu_result_raw;
 
   logic [32:0] multdiv_alu_operand_b, multdiv_alu_operand_a;
   logic [33:0] alu_adder_result_ext;
@@ -92,9 +104,93 @@ module ibex_ex_block #(
   // branch handling
   assign branch_decision_o  = alu_cmp_result;
 
+
+  //  initial begin
+  //   $display("sample ", instr_rdata_ex_i);
+  // end
+
+  // Internal state variables (feedback mechanism)
+    // logic [1:0] btb_data_wdata_state;
+    // logic btb_data_write_state;
+
+    // Default BTB address
+    // assign btb_data_addr_o = instr_rdata_ex_i;
+    feistel_encrypt  #(
+    // .N_ROUNDS(4)
+  ) feistel_encrypt_index (
+    .plaintext(instr_rdata_ex_i),
+    .round_keys(16'b1011110100111010),
+    .ciphertext(btb_data_addr_o)
+   );
+
+    // Feedback logic for BTB data write enable
+ assign btb_data_write_o = (!rst_ni) ? 1'b0 : 
+                          (alu_instr_first_cycle_i) ? 1'b1 : 
+                          1'b0;
+
+    // Feedback logic for BTB data write value
+assign btb_data_wdata_o = (!rst_ni) ? 2'b00 :
+                          (alu_instr_first_cycle_i && branch_decision_o) ? (
+                              (btb_data_rdata_i == 2'b00) ? 2'b01 :
+                              (btb_data_rdata_i == 2'b01) ? 2'b10 :
+                              (btb_data_rdata_i == 2'b10) ? 2'b11 :
+                              2'b11 // Saturate at strongly taken
+                          ) :
+                          (alu_instr_first_cycle_i && !branch_decision_o) ? (
+                              (btb_data_rdata_i == 2'b00) ? 2'b00 :
+                              (btb_data_rdata_i == 2'b01) ? 2'b00 :
+                              (btb_data_rdata_i == 2'b10) ? 2'b01 :
+                              (btb_data_rdata_i == 2'b11) ? 2'b10 :
+                              2'b00 // Saturate at strongly not taken
+                          ) : 
+                          btb_data_rdata_i; // Default to current data if no condition matches
+
+
+  
+  // /// BTB update
+  //  // Add BTB update logic after branch decision
+  // always_ff @(posedge clk_i or negedge rst_ni) begin
+  //   if (!rst_ni) begin
+  //     btb_data_write_o <= 1'b0;
+  //     btb_data_wdata_o <= 2'b00;
+  //   end else begin
+  //     btb_data_write_o <= 1'b0;
+      
+  //     if (alu_instr_first_cycle_i && branch_decision_o) begin
+  //       btb_data_write_o <= 1'b1;
+  //       // Update counter based on actual outcome
+  //       case (btb_data_rdata_i)
+  //         2'b00: btb_data_wdata_o <= 2'b01; // Increment if taken
+  //         2'b01: btb_data_wdata_o <= 2'b10;
+  //         2'b10: btb_data_wdata_o <= 2'b11;
+  //         2'b11: btb_data_wdata_o <= 2'b11; // Saturate at strongly taken
+  //       endcase
+  //     end else if (alu_instr_first_cycle_i && !branch_decision_o) begin
+  //       btb_data_write_o <= 1'b1;
+  //       // Decrement counter if not taken
+  //       case (btb_data_rdata_i)
+  //         2'b00: btb_data_wdata_o <= 2'b00; // Saturate at strongly not taken
+  //         2'b01: btb_data_wdata_o <= 2'b00;
+  //         2'b10: btb_data_wdata_o <= 2'b01;
+  //         2'b11: btb_data_wdata_o <= 2'b10;
+  //       endcase
+  //     end
+  //   end
+  // end
+
+  // // Use branch PC for BTB update
+  // assign btb_data_addr_o = instr_rdata_ex_i;
+
+
+  // /// BTB update
+
+
+
+
+
   if (BranchTargetALU) begin : g_branch_target_alu
     logic [32:0] bt_alu_result;
-    logic [31:0] bt_alu_result_enc;
+    // logic [31:0] bt_alu_result_enc;
     logic        unused_bt_carry;
 
     assign bt_alu_result   = bt_a_operand_i + bt_b_operand_i;
@@ -125,18 +221,20 @@ module ibex_ex_block #(
   /////////
 
   // Your existing local signal declarations ...
-  logic [31:0] modified_alu_operand_a;
+  // logic [31:0] modified_alu_operand_a;
 
   // Opcode and JALR detection
   // wire [6:0] opcode = instr_rdata_ex_i[6:0];
-  wire is_jalr = (instr_rdata_ex_i == 7'b1100111);  // Opcode for JALR
+  wire is_jalr = (instr_rdata_ex_i[6:0] == 7'b1100111);  // Opcode for JALR
   
   // wire is_jal = 1'b1;  // Opcode for JAL
   
 
   // Apply XOR operation if the instruction is JALR
   // (alu_operand_a_i ^ 32'h52068860)
-  assign modified_alu_operand_a =  (is_jalr) ? (alu_operand_a_i ^ 32'h52068860) : alu_operand_a_i;
+  // assign modified_alu_operand_a =  (is_jalr) ? (alu_operand_a_i ^ 32'h52068860) : alu_operand_a_i;
+  assign alu_result =  (is_jalr) ? (alu_result_raw ^ 32'h52068860) : alu_result_raw;
+  assign alu_adder_result_ex_o =  (is_jalr) ? (alu_adder_result_ex_o_raw ^ 32'h52068860) : alu_adder_result_ex_o_raw;
   
   // $display("%b", modified_alu_operand_a);
   // $monitor(,$time,"a=%h",modified_alu_operand_a);
@@ -145,7 +243,7 @@ module ibex_ex_block #(
     .RV32B(RV32B)
   ) alu_i (
     .operator_i         (alu_operator_i),
-    .operand_a_i        (modified_alu_operand_a), //potential modified operand
+    .operand_a_i        (alu_operand_a_i), //potential modified operand
     .operand_b_i        (alu_operand_b_i),
     .instr_first_cycle_i(alu_instr_first_cycle_i),
     .imd_val_q_i        (alu_imd_val_q),
@@ -154,9 +252,14 @@ module ibex_ex_block #(
     .multdiv_operand_a_i(multdiv_alu_operand_a),
     .multdiv_operand_b_i(multdiv_alu_operand_b),
     .multdiv_sel_i      (multdiv_sel),
-    .adder_result_o     (alu_adder_result_ex_o),
+    // .adder_result_o     (alu_adder_result_ex_o),
+    .adder_result_o           (alu_adder_result_ex_o_raw),
+    
     .adder_result_ext_o (alu_adder_result_ext),
-    .result_o           (alu_result),
+    
+    // .result_o           (alu_result), 
+    .result_o           (alu_result_raw), 
+
     .comparison_result_o(alu_cmp_result),
     .is_equal_result_o  (alu_is_equal_result)
   );

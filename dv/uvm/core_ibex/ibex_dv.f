@@ -75,6 +75,9 @@ ${LOWRISC_IP_DIR}/ip/prim/rtl/prim_onehot_mux.sv
 // ibex CORE RTL files
 +incdir+${PRJ_DIR}/rtl
 ${PRJ_DIR}/rtl/ibex_pkg.sv
+${PRJ_DIR}/rtl/feistel_decrypt.sv
+${PRJ_DIR}/rtl/feistel_encrypt.sv
+${PRJ_DIR}/rtl/feistel_round.sv
 ${PRJ_DIR}/rtl/ibex_tracer_pkg.sv
 ${PRJ_DIR}/rtl/ibex_tracer.sv
 ${PRJ_DIR}/rtl/ibex_alu.sv

@@ -191,6 +191,20 @@ module ibex_top import ibex_pkg::*; #(
   logic [LineSizeECC-1:0]      ic_data_wdata;
   logic [LineSizeECC-1:0]      ic_data_rdata [IC_NUM_WAYS];
   logic                        ic_scr_key_req;
+
+  // BTB RAM IO
+  // 128 lines 
+  // direct mapped
+  // data size 2 bits T weakT, WeakNT, NT = 11, 10, 01, 00
+  // tag data size 1 bit valid / invalid
+  // address least significant 7 bits
+
+  // BTB signals
+  logic                 btb_data_write; 
+  logic [7:0]           btb_data_addr;
+  logic [1:0]           btb_data_wdata;
+  logic [1:0]           btb_data_rdata;
+  
   // Alert signals
   logic                        core_alert_major_internal, core_alert_major_bus, core_alert_minor;
   logic                        lockstep_alert_major_internal, lockstep_alert_major_bus;
@@ -355,6 +369,12 @@ module ibex_top import ibex_pkg::*; #(
     .ic_data_rdata_i   (ic_data_rdata),
     .ic_scr_key_valid_i(scramble_key_valid_q),
     .ic_scr_key_req_o  (ic_scr_key_req),
+
+     // BTB RAM IO
+    .btb_data_write_o (btb_data_write),
+    .btb_data_addr_o  (btb_data_addr),
+    .btb_data_wdata_o (btb_data_wdata),
+    .btb_data_rdata_i (btb_data_rdata),
 
     .irq_software_i,
     .irq_timer_i,
@@ -556,6 +576,22 @@ module ibex_top import ibex_pkg::*; #(
 
   logic [IC_NUM_WAYS-1:0] icache_tag_alert;
   logic [IC_NUM_WAYS-1:0] icache_data_alert;
+
+  // btb instantiation
+    prim_ram_1p #(
+      .Width            (2),
+      .Depth            (256),
+      .DataBitsPerMask  (1)
+    ) btb_data_bank (
+      .clk_i(clk),
+      .req_i(btb_data_write),
+      .write_i(btb_data_write),
+      .addr_i(btb_data_addr),
+      .wdata_i(btb_data_wdata),
+      .wmask_i({2{1'b1}}),
+      .rdata_o(btb_data_rdata),
+      .cfg_i(ram_cfg_i)
+    );
 
   if (ICache) begin : gen_rams
 
@@ -1073,7 +1109,14 @@ module ibex_top import ibex_pkg::*; #(
       .alert_major_bus_o      (lockstep_alert_major_bus_local),
       .core_busy_i            (core_busy_local),
       .test_en_i              (test_en_i),
-      .scan_rst_ni            (scan_rst_ni)
+      .scan_rst_ni            (scan_rst_ni),
+
+      // BTB RAM IO
+      .btb_data_write_o (btb_data_write),
+      .btb_data_addr_o  (btb_data_addr),
+      .btb_data_wdata_o (btb_data_wdata),
+      .btb_data_rdata_i (btb_data_rdata)
+
     );
 
     prim_buf u_prim_buf_alert_minor (

@@ -2,6 +2,9 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
+feistel_decrypt.sv
+feistel_encrypt.sv
+feistel_round.sv
 ibex_pkg.sv
 ibex_alu.sv
 ibex_compressed_decoder.sv

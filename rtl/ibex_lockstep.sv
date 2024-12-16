@@ -103,7 +103,13 @@ module ibex_lockstep import ibex_pkg::*; #(
   output logic                         alert_major_bus_o,
   input  ibex_mubi_t                   core_busy_i,
   input  logic                         test_en_i,
-  input  logic                         scan_rst_ni
+  input  logic                         scan_rst_ni,
+
+  // BTB signals
+  output logic                        btb_data_write_o,
+  output logic [7:0]                  btb_data_addr_o,
+  output logic [1:0]                  btb_data_wdata_o,
+  input  logic [1:0]                  btb_data_rdata_i
 );
 
   localparam int unsigned LockstepOffsetW = $clog2(LockstepOffset);
@@ -430,6 +436,12 @@ module ibex_lockstep import ibex_pkg::*; #(
     .debug_req_i         (shadow_inputs_q[0].debug_req),
     .crash_dump_o        (shadow_outputs_d.crash_dump),
     .double_fault_seen_o (shadow_outputs_d.double_fault_seen),
+
+    // BTB RAM IO
+    .btb_data_write_o (btb_data_write_o),
+    .btb_data_addr_o  (btb_data_addr_o),
+    .btb_data_wdata_o (btb_data_wdata_o),
+    .btb_data_rdata_i (btb_data_rdata_i),
 
 `ifdef RVFI
     .rvfi_valid                (),

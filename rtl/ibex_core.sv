@@ -99,6 +99,20 @@ module ibex_core import ibex_pkg::*; #(
   input  logic                         ic_scr_key_valid_i,
   output logic                         ic_scr_key_req_o,
 
+
+  // BTB RAM IO
+  // 128 lines 
+  // direct mapped
+  // data size 2 bits T weakT, WeakNT, NT = 11, 10, 01, 00
+  // tag data size 1 bit valid / invalid
+  // address least significant 7 bits
+
+  output logic                        btb_data_write_o,
+  output logic [7:0]                  btb_data_addr_o,
+  output logic [1:0]                  btb_data_wdata_o,
+  input  logic [1:0]                  btb_data_rdata_i,
+
+
   // Interrupt inputs
   input  logic                         irq_software_i,
   input  logic                         irq_timer_i,
@@ -163,6 +177,11 @@ module ibex_core import ibex_pkg::*; #(
   output logic                         alert_major_bus_o,
   output ibex_mubi_t                   core_busy_o
 );
+
+  
+   initial begin
+    $display(btb_data_rdata_i);
+  end
 
   localparam int unsigned PMPNumChan      = 3;
   // SEC_CM: CORE.DATA_REG_SW.SCA
@@ -458,6 +477,13 @@ module ibex_core import ibex_pkg::*; #(
     .ic_scr_key_valid_i(ic_scr_key_valid_i),
     .ic_scr_key_req_o  (ic_scr_key_req_o),
 
+     // BTB RAM IO
+    .btb_data_write_o (btb_data_write_o),
+    .btb_data_addr_o  (btb_data_addr_o),
+    // .btb_data_wdata_o (btb_data_wdata_o),
+    .btb_data_rdata_i (btb_data_rdata_i[1]),// only need the second bit to know if the branch is taken
+
+
     // outputs to ID stage
     .instr_valid_id_o        (instr_valid_id),
     .instr_new_id_o          (instr_new_id),
@@ -712,7 +738,7 @@ module ibex_core import ibex_pkg::*; #(
     .rst_ni(rst_ni),
 
     // ALU signal from ID stage
-    .instr_rdata_ex_i        (instr_rdata_id[6:0]), // Instruction opcode from fetch stage
+    .instr_rdata_ex_i        (instr_rdata_id[7:0]), // Instruction opcode from fetch stage // and also btb signal
     .alu_operator_i         (alu_operator_ex),
     .alu_operand_a_i        (alu_operand_a_ex),
     .alu_operand_b_i        (alu_operand_b_ex),
@@ -746,7 +772,14 @@ module ibex_core import ibex_pkg::*; #(
     .branch_target_o  (branch_target_ex),  // to IF
     .branch_decision_o(branch_decision),  // to ID
 
-    .ex_valid_o(ex_valid)
+    .ex_valid_o(ex_valid),
+
+    //btb signals
+    .btb_data_write_o(btb_data_write_o),
+    .btb_data_addr_o (btb_data_addr_o),
+    .btb_data_wdata_o(btb_data_wdata_o),
+    .btb_data_rdata_i(btb_data_rdata_i)
+    // .instr_rdata_ex_i(instr_rdata_id[7:0])
   );
 
   /////////////////////
